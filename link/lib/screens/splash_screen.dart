@@ -30,6 +30,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState(){
     super.initState();
+
     Timer(Duration(seconds: 10), toOnboardingScreen);
   }
 
@@ -74,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    const SpinKitCircle(color: Colors.white),
+                    SpinKitCircle(color: Colors.white),
                     Padding(
                       padding: EdgeInsets.only(top: 20.0)
                     ),

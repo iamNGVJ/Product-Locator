@@ -5,7 +5,6 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:link/models/product.dart';
 import 'package:http/http.dart' as http;
-import 'package:link/widget_utils/menu_widget.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -19,7 +18,7 @@ class _HomeState extends State<Home> {
   String _currentLocation;
   String _currentCountry;
   List<Products> fetchedProducts;
-  final menu = new CustomMenu();
+  List<Products> _products = List<Products>();
 
   _getAddressFromLatLng() async {
     try {
@@ -40,6 +39,12 @@ class _HomeState extends State<Home> {
     }
   }
 
+  Future<Placemark> getActualLocation(latitude, longitude) async{
+    List<Placemark> placemark = await geoLocator.placemarkFromCoordinates(latitude, longitude);
+    Placemark place = placemark[0];
+    return place;
+  }
+
   getCurrentLocation() async {
     await geoLocator
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
@@ -54,37 +59,42 @@ class _HomeState extends State<Home> {
     });
   }
 
+
   // ignore: missing_return
-  Future<Products> getProduct() async {
+  Future<List<Products>> getProducts() async {
     const url = 'http://hitwo-api.herokuapp.com/products';
-    try{
+    var products = List<Products>();
+    try {
       var response = await http.get(url);
-      List<Products> allProducts = [];
       if (response.statusCode == 200) {
         print('decoding response');
-        var products = json.decode(response.body);
-        for (int i = 0; i < products.length; i++) {
-          allProducts[i] = Products.fromJSON(products[i]);
+        var productsJson = json.decode(response.body);
+        for (var productJson in productsJson) {
+          products.add(Products.fromJSON(productJson));
         }
-        setState(() {
-          print('loading data on viewport');
-          fetchedProducts = allProducts;
-        });
       }
-    }on Exception catch(e){
+    } on Exception catch (e) {
       print("$e");
     }
+    return products;
   }
 
   @override
   void initState() {
     getCurrentLocation();
-    getProduct();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    getProducts().then((value) {
+      for(var val in value){
+        _products.add(val);
+      }
+    });
+
+    int _currentIndex = 0;
+
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(fontFamily: 'VarelaRound'),
@@ -98,73 +108,60 @@ class _HomeState extends State<Home> {
                       Column(
                         children: <Widget>[
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: <Widget>[
+                              Padding(
+                                padding: EdgeInsets.only(
+                                    top: 16.0, right: 0.0, left: 16.0),
+                                child: Text(
+                                  "Product Locator",
+                                  style: TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 50,
+                              ),
                               Row(
                                 children: <Widget>[
                                   Padding(
                                     padding: EdgeInsets.only(
                                         top: 16.0, right: 0.0, left: 16.0),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        menu.showMenuOnScreen(context);
-                                      },
-                                      child: Icon(
-                                        Icons.menu,
-                                        size: 30,
-                                      ),
+                                    child: Icon(
+                                      Icons.location_on,
+                                      color: Colors.grey,
                                     ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.only(
-                                        top: 16.0, right: 0.0, left: 16.0),
-                                    child: Text(
-                                      "Home",
-                                      style: TextStyle(fontSize: 20),
+                                      top: 16.0,
+                                      left: 8.0,
                                     ),
+                                    child: _currentLocation != null
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: <Widget>[
+                                              Text("$_currentLocation"),
+                                              Text("$_currentCountry")
+                                            ],
+                                          )
+                                        : GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                getCurrentLocation();
+                                              });
+                                            },
+                                            child: Text("Enable Location"),
+                                          ),
                                   )
                                 ],
-                              ),
-                              SizedBox(
-                                width: 100,
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    top: 16.0, right: 0.0, left: 16.0),
-                                child: Icon(
-                                  Icons.location_on,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  top: 16.0,
-                                  left: 8.0,
-                                ),
-                                child: _currentLocation != null
-                                    ? Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: <Widget>[
-                                          Text("$_currentLocation",
-                                              style: TextStyle(fontSize: 15)),
-                                          Text("$_currentCountry",
-                                              style: TextStyle(fontSize: 15))
-                                        ],
-                                      )
-                                    : GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            getCurrentLocation();
-                                          });
-                                        },
-                                        child: Text("Enable Location"),
-                                      ),
                               )
                             ],
                           )
                         ],
-                      )
+                      ),
                     ],
                   ),
                   Row(
@@ -220,7 +217,7 @@ class _HomeState extends State<Home> {
                             Container(
                               padding: EdgeInsets.all(16.0),
                               alignment: Alignment.centerLeft,
-                              height: 250,
+                              height: 320,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
@@ -229,37 +226,142 @@ class _HomeState extends State<Home> {
                                         MainAxisAlignment.spaceBetween,
                                     children: <Widget>[
                                       Text(
-                                        "Near You",
+                                        "Popular Products",
                                         style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 27,
                                             fontWeight: FontWeight.bold),
                                       ),
                                       GestureDetector(
-                                          onTap: () {
-                                            getProduct();
-                                          },
-                                          child: Icon(
-                                            Icons.refresh,
-                                            color: Colors.white,
+                                          onTap: () {},
+                                          child: Row(
+                                            children: <Widget>[
+                                              Text("View More",
+                                                  style: TextStyle(
+                                                      color: Colors.white)),
+                                              Icon(Icons.arrow_forward,
+                                                  color: Colors.white)
+                                            ],
                                           ))
                                     ],
                                   ),
                                   Container(
                                       width: double.infinity,
-                                      height: 100,
-                                      child: fetchedProducts != null
-                                          ? ListView.builder(
-                                              itemCount: fetchedProducts.length,
-                                              itemBuilder:
-                                                  (BuildContext context,
-                                                      int i) {
-                                                return Text(fetchedProducts[i]
-                                                    .brandName);
-                                              })
-                                          : Center(
-                                              child: SpinKitCircle(
-                                                  color: Colors.white)))
+                                      height: 260,
+                                      child: _products != null ? ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: 5,
+                                          itemBuilder: (context, index) {
+                                            return Card(
+                                              elevation: 24.0,
+                                              child: Container(
+                                                height: 200,
+                                                width: 150,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white70
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: <Widget>[
+                                                    Container(
+                                                      height: 140,
+                                                      width: 150,
+                                                      decoration: BoxDecoration(
+                                                        borderRadius: BorderRadius.only(
+                                                          bottomLeft: Radius.circular(16.0),
+                                                          bottomRight: Radius.circular(16.0)
+                                                        )
+                                                      ),
+                                                      child: Image(
+                                                        image: NetworkImage(_products[index].imageUrl),
+                                                        fit: BoxFit.fitWidth,
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding: const EdgeInsets.all(8.0),
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: <Widget>[
+                                                          Text(
+                                                            "${_products[index].name}",
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.bold
+                                                            )
+                                                          ),
+                                                          Container(
+                                                            padding: EdgeInsets.all(5.0),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.blue,
+                                                              borderRadius: BorderRadius.circular(15.0),
+                                                            ),
+                                                            child: Text(
+                                                                "\$${_products[index].price}",
+                                                              style: TextStyle(
+                                                                color: Colors.white
+                                                              ),
+                                                            )
+                                                          )
+                                                        ]
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding: EdgeInsets.only(
+                                                        left: 8.0,
+                                                        right: 8.0
+                                                      ),
+                                                      child: Text(
+                                                          "${_products[index].model}",
+                                                          style: TextStyle(
+                                                              fontSize: 11,
+                                                            fontWeight: FontWeight.w600
+                                                          )
+                                                      )
+                                                    ),
+                                                    Padding(
+                                                      padding: EdgeInsets.all(8.0),
+                                                      child: GestureDetector(
+                                                        onTap: (){
+                                                          print("tapped");
+                                                        },
+                                                        child: Container(
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.blue
+                                                          ),
+                                                          child: Padding(
+                                                            padding: EdgeInsets.all(8.0),
+                                                            child: Row(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            children: <Widget>[
+                                                              Text(
+                                                                  "More Details",
+                                                                  style: TextStyle(
+                                                                      fontSize: 12,
+                                                                      fontWeight: FontWeight.w600,
+                                                                    color: Colors.white
+                                                                  )
+                                                              ),
+                                                              SizedBox(
+                                                                width: 5,
+                                                              ),
+                                                              Icon(
+                                                                Icons.open_in_browser,
+                                                                size: 15,
+                                                                color: Colors.white
+                                                              )
+                                                            ],)
+                                                          ),
+                                                        ),
+                                                      )
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          ) : Center(
+                                                child: SpinKitCircle(color: Colors.white)
+                                      )
+                                  )
                                 ],
                               ),
                             ),
@@ -285,6 +387,36 @@ class _HomeState extends State<Home> {
                 ],
               ),
             ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              title: Text("Home"),
+              backgroundColor: Colors.blue
+            ),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.search),
+                title: Text("Search"),
+                backgroundColor: Colors.blue
+            ),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                title: Text("Profile"),
+                backgroundColor: Colors.blue
+            ),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.settings),
+                title: Text("Settings"),
+                backgroundColor: Colors.blue
+            )
+          ],
+          onTap: (index){
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        )
           ),
         ));
   }

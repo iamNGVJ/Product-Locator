@@ -2,10 +2,19 @@ import 'dart:core';
 
 class Products {
   List<String> colors;
+  List<String> metadata;
+  List<String> gallery;
+  String storeName;
+  String storeId;
+  String storeAddress;
+  String storeLatitude;
+  String storeLongitude;
+  String category;
+  String description;
   int size;
   int rating;
-  String brandName;
-  String productName;
+  String name;
+  String model;
   String imageUrl;
   double price;
   DateTime date;
@@ -13,18 +22,32 @@ class Products {
   Products(
       {this.size,
       this.rating,
-      this.brandName,
-      this.productName,
+      this.name,
+      this.model,
       this.imageUrl,
       this.price,
-      this.date});
+      this.date,
+      this.storeName,
+      this.storeAddress,
+      this.storeId,
+      this.storeLatitude,
+      this.storeLongitude,
+      this.category,
+      this.description});
 
   Products.fromJSON(Map<String, dynamic> json)
-    : size = json['size'],
-      rating = json['rating'],
-      brandName = json['brandName'],
-      productName = json['productName'],
-      imageUrl = json['imageUrl'],
-      price = json['price'].toDouble(),
-      date = DateTime.parse(json['date']);
+      : size = json['size'],
+        rating = json['rating'],
+        name = json['brandName'],
+        model = json['productName'],
+        imageUrl = json['imageUrl'],
+        price = json['price'].toDouble(),
+        date = DateTime.parse(json['date']),
+        storeName = json['storeName'],
+        storeAddress = json['storeAddress'],
+        storeId = json['storeId'],
+        storeLatitude = json['storeLatitude'],
+        storeLongitude = json['storeLongitude'],
+        category = json['category'],
+        description = json['description'];
 }
